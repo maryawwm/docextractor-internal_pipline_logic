@@ -8,7 +8,10 @@ celery_worker = Celery(
     "worker",
     backend=app_settings.celery_backend,
     broker=app_settings.celery_broker,
-    include=["src.normal_document.tasks"],
+    include=[
+        "src.normal_document.tasks",
+        "src.asr.tasks",
+    ],
 )
 celery_worker.conf.update(
     broker_connection_retry_on_startup=True,

@@ -7,6 +7,7 @@ from fastapi import FastAPI, Depends
 from src.db.manager import sessionmanager
 from src.force_stop.router import router as force_stop_router
 from src.normal_document.router import router as normal_document_router
+from src.asr.router import router as asr_router
 from src.auth.dependency import get_api_key
 from src.app_logger.manager import setup_logging
 
@@ -25,4 +26,5 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan, dependencies=[Depends(get_api_key)])
 
 app.include_router(normal_document_router)
+app.include_router(asr_router)
 app.include_router(force_stop_router)
