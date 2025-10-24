@@ -1,0 +1,3 @@
+celery -A src.core.worker worker --loglevel=INFO
+sqlcmd -S localhost,1433 -U sa -P 'StrongP!ssword' -d nikamooz -C -Y 8000 -y 8000
+INSERT INTO process_requests ( TaskId, UserId, DocumentId, EndpointName, ProcessPayload, StartTime ) VALUES ( 1002, 2, 3, '127.0.0.1:8000/normal_pdf', '{ "input_minio_cred": { "minio_access_key": "minioadmin", "minio_secret_key": "minioadmin" }, "input_minio_endpoint": "127.0.0.1:9000", "input_bucket_name": "clienttest", "input_object_path": "test/2509.03518v1.pdf", "extract_images": 1, "output_minio_cred": { "minio_access_key": "minioadmin", "minio_secret_key": "minioadmin" }, "output_minio_endpoint": "127.0.0.1:9000", "output_bucket_name": "nextclient", "output_object_path": "test/" }', SYSDATETIMEOFFSET() );

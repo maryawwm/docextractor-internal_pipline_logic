@@ -1,0 +1,1205 @@
+i have a codebase template that my teammate have written for extracting documents with docling..we want to adopt all our services based on this codebase structure..i will share you all the structures and scripts..it has 2 directories:
+alembic
+src
+alongside these 2 directories there is alembic.ini file with this content:
+# A generic, single database configuration.
+
+[alembic]
+# path to migration scripts.
+# this is typically a path given in POSIX (e.g. forward slashes)
+# format, relative to the token %(here)s which refers to the location of this
+# ini file
+script_location = %(here)s/alembic
+
+# template used to generate migration file names; The default value is %%(rev)s_%%(slug)s
+# Uncomment the line below if you want the files to be prepended with date and time
+# see https://alembic.sqlalchemy.org/en/latest/tutorial.html#editing-the-ini-file
+# for all available tokens
+# file_template = %%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s
+
+# sys.path path, will be prepended to sys.path if present.
+# defaults to the current working directory.  for multiple paths, the path separator
+# is defined by "path_separator" below.
+prepend_sys_path = .
+
+
+# timezone to use when rendering the date within the migration file
+# as well as the filename.
+# If specified, requires the python>=3.9 or backports.zoneinfo library and tzdata library.
+# Any required deps can installed by adding `alembic[tz]` to the pip requirements
+# string value is passed to ZoneInfo()
+# leave blank for localtime
+# timezone =
+
+# max length of characters to apply to the "slug" field
+# truncate_slug_length = 40
+
+# set to 'true' to run the environment during
+# the 'revision' command, regardless of autogenerate
+# revision_environment = false
+
+# set to 'true' to allow .pyc and .pyo files without
+# a source .py file to be detected as revisions in the
+# versions/ directory
+# sourceless = false
+
+# version location specification; This defaults
+# to <script_location>/versions.  When using multiple version
+# directories, initial revisions must be specified with --version-path.
+# The path separator used here should be the separator specified by "path_separator"
+# below.
+# version_locations = %(here)s/bar:%(here)s/bat:%(here)s/alembic/versions
+
+# path_separator; This indicates what character is used to split lists of file
+# paths, including version_locations and prepend_sys_path within configparser
+# files such as alembic.ini.
+# The default rendered in new alembic.ini files is "os", which uses os.pathsep
+# to provide os-dependent path splitting.
+#
+# Note that in order to support legacy alembic.ini files, this default does NOT
+# take place if path_separator is not present in alembic.ini.  If this
+# option is omitted entirely, fallback logic is as follows:
+#
+# 1. Parsing of the version_locations option falls back to using the legacy
+#    "version_path_separator" key, which if absent then falls back to the legacy
+#    behavior of splitting on spaces and/or commas.
+# 2. Parsing of the prepend_sys_path option falls back to the legacy
+#    behavior of splitting on spaces, commas, or colons.
+#
+# Valid values for path_separator are:
+#
+# path_separator = :
+# path_separator = ;
+# path_separator = space
+# path_separator = newline
+#
+# Use os.pathsep. Default configuration used for new projects.
+path_separator = os
+
+# set to 'true' to search source files recursively
+# in each "version_locations" directory
+# new in Alembic version 1.10
+# recursive_version_locations = false
+
+# the output encoding used when revision files
+# are written from script.py.mako
+# output_encoding = utf-8
+
+# database URL.  This is consumed by the user-maintained env.py script only.
+# other means of configuring database URLs may be customized within the env.py
+# file.
+sqlalchemy.url = mssql+pyodbc://chatbot_ai_core_user:pAS6J3M2UW50@172.16.12.11:1433/chatbot_ai_core?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=no&TrustServerCertificate=no
+
+
+[post_write_hooks]
+# post_write_hooks defines scripts or Python functions that are run
+# on newly generated revision scripts.  See the documentation for further
+# detail and examples
+
+# format using "black" - use the console_scripts runner, against the "black" entrypoint
+# hooks = black
+# black.type = console_scripts
+# black.entrypoint = black
+# black.options = -l 79 REVISION_SCRIPT_FILENAME
+
+# lint with attempts to fix using "ruff" - use the module runner, against the "ruff" module
+# hooks = ruff
+# ruff.type = module
+# ruff.module = ruff
+# ruff.options = check --fix REVISION_SCRIPT_FILENAME
+
+# Alternatively, use the exec runner to execute a binary found on your PATH
+# hooks = ruff
+# ruff.type = exec
+# ruff.executable = ruff
+# ruff.options = check --fix REVISION_SCRIPT_FILENAME
+
+# Logging configuration.  This is also consumed by the user-maintained
+# env.py script only.
+[loggers]
+keys = root,sqlalchemy,alembic
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = WARNING
+handlers = console
+qualname =
+
+[logger_sqlalchemy]
+level = WARNING
+handlers =
+qualname = sqlalchemy.engine
+
+[logger_alembic]
+level = INFO
+handlers =
+qualname = alembic
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(levelname)-5.5s [%(name)s] %(message)s
+datefmt = %H:%M:%S
+
+inside alembic directory there is a env.py file :
+from logging.config import fileConfig
+
+from sqlalchemy import engine_from_config
+from sqlalchemy import pool
+from src.db.models import Base
+from alembic import context
+
+# this is the Alembic Config object, which provides
+# access to the values within the .ini file in use.
+config = context.config
+
+# Interpret the config file for Python logging.
+# This line sets up loggers basically.
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+# add your model's MetaData object here
+# for 'autogenerate' support
+# from myapp import mymodel
+target_metadata = Base.metadata
+# target_metadata = None
+
+# other values from the config, defined by the needs of env.py,
+# can be acquired:
+# my_important_option = config.get_main_option("my_important_option")
+# ... etc.
+
+
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode.
+
+    This configures the context with just a URL
+    and not an Engine, though an Engine is acceptable
+    here as well.  By skipping the Engine creation
+    we don't even need a DBAPI to be available.
+
+    Calls to context.execute() here emit the given string to the
+    script output.
+
+    """
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode.
+
+    In this scenario we need to create an Engine
+    and associate a connection with the context.
+
+    """
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection, target_metadata=target_metadata
+        )
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
+
+
+now inside src directory there are several direcctories:
+1)first app_logger folder which contains "config.json" and "manager.py"
+the config.json code :
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "simple": {
+      "format": "%(levelname)s: %(message)s",
+      "datefmt": "%Y-%m-%dT%H:%M:%S%z"
+    },
+    "json": {
+      "()": "src.app_logger.manager.MyJSONFormatter",
+      "fmt_keys": {
+        "level": "levelname",
+        "message": "message",
+        "timestamp": "timestamp",
+        "logger": "name",
+        "module": "module",
+        "function": "funcName",
+        "line": "lineno",
+        "thread_name": "threadName"
+      }
+    }
+  },
+  "handlers": {
+    "stderr": {
+      "class": "logging.StreamHandler",
+      "level": "DEBUG",
+      "formatter": "simple",
+      "stream": "ext://sys.stderr"
+    },
+    "file": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "level": "DEBUG",
+      "formatter": "json",
+      "filename": "logs/docextractor.log.jsonl",
+      "maxBytes": 1000000,
+      "backupCount": 3
+    }
+  },
+  "loggers": {
+    "root": {
+      "level": "DEBUG",
+      "handlers": [
+        "file",
+        "stderr"
+      ]
+    }
+  }
+}
+and manager.py: 
+import datetime as dt
+import json
+import atexit
+import logging
+import logging.config
+import logging.handlers
+import pathlib
+from typing import override
+
+LOG_RECORD_BUILTIN_ATTRS = {
+    "args",
+    "asctime",
+    "created",
+    "exc_info",
+    "exc_text",
+    "filename",
+    "funcName",
+    "levelname",
+    "levelno",
+    "lineno",
+    "module",
+    "msecs",
+    "message",
+    "msg",
+    "name",
+    "pathname",
+    "process",
+    "processName",
+    "relativeCreated",
+    "stack_info",
+    "thread",
+    "threadName",
+    "taskName",
+}
+
+
+class MyJSONFormatter(logging.Formatter):
+    def __init__(self, *, fmt_keys: dict[str, str] | None = None):
+        super().__init__()
+        self.fmt_keys = fmt_keys if fmt_keys is not None else {}
+
+    @override
+    def format(self, record: logging.LogRecord) -> str:
+        message = self._prepare_log_dict(record)
+        return json.dumps(message, default=str)
+
+    def _prepare_log_dict(self, record: logging.LogRecord):
+        always_fields = {
+            "message": record.getMessage(),
+            "timestamp": dt.datetime.fromtimestamp(
+                record.created, tz=dt.timezone.utc
+            ).isoformat(),
+        }
+        if record.exc_info is not None:
+            always_fields["exc_info"] = self.formatException(record.exc_info)
+
+        if record.stack_info is not None:
+            always_fields["stack_info"] = self.formatStack(record.stack_info)
+
+        message = {
+            key: msg_val
+            if (msg_val := always_fields.pop(val, None)) is not None
+            else getattr(record, val)
+            for key, val in self.fmt_keys.items()
+        }
+        message.update(always_fields)
+
+        for key, val in record.__dict__.items():
+            if key not in LOG_RECORD_BUILTIN_ATTRS:
+                message[key] = val
+
+        return message
+
+
+class NonErrorFilter(logging.Filter):
+    @override
+    def filter(self, record: logging.LogRecord) -> bool | logging.LogRecord:
+        return record.levelno <= logging.INFO
+
+
+def setup_logging():
+    config_file = pathlib.Path("src/app_logger/conf.json")
+    with open(config_file) as f_in:
+        config = json.load(f_in)
+
+    logging.config.dictConfig(config)
+    queue_handler = logging.getHandlerByName("queue_handler")
+    if queue_handler is not None:
+        queue_handler.listener.start()
+        atexit.register(queue_handler.listener.stop)
+
+2)next folder is "auth" which contains "dependency.py" with code below:
+from fastapi import HTTPException, Security
+from fastapi.security.api_key import APIKeyHeader
+from starlette.status import HTTP_401_UNAUTHORIZED
+
+from src.core.settings import app_settings
+
+API_KEY = app_settings.api_key
+API_KEY_NAME = "X-API-Key"
+
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+
+def get_api_key(api_key_header_value: str = Security(api_key_header)) -> str:
+
+    if api_key_header_value == API_KEY:
+        return api_key_header_value
+    raise HTTPException(
+        status_code=HTTP_401_UNAUTHORIZED,
+        detail="Invalid or missing API Key",
+    )
+
+
+3)"core" folder which has 2 scripts : "settings.py" and "worker.py"
+setteings.py code is :
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class AppSettings(BaseSettings):
+    celery_broker: str
+    celery_backend:str
+    database_url: str
+
+    minio_security: bool
+
+    api_key: str
+    document_path: str
+
+    model_config = SettingsConfigDict(env_file=".env")
+
+app_settings = AppSettings()
+
+an "worker.py" code is :
+from celery import Celery
+from src.core.settings import app_settings
+from src.app_logger.manager import setup_logging
+
+setup_logging()
+
+celery_worker = Celery(
+    "worker",
+    backend=app_settings.celery_backend,
+    broker=app_settings.celery_broker,
+    include=["src.normal_document.tasks"],
+)
+celery_worker.conf.update(
+    broker_connection_retry_on_startup=True,
+    worker_hijack_root_logger=False,
+)
+
+4)then we have "db" folder which has these scripts : "crud.py", "dependency.py", "enums.py", "manager.py", "models.py"
+crud.py code is:
+import logging
+from datetime import datetime
+from typing import Any, Dict, Optional
+
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
+
+from src.db.manager import sessionmanager
+from src.db.models import ProcessLogs, ProcessRequests, ProcessResult
+
+logger = logging.getLogger(__name__)
+
+
+def get_process_data_by_task_id(task_id: str) -> Optional[Dict[str, Any]]:
+    """Safely fetch process data without returning detached ORM objects."""
+    with sessionmanager.session() as session:
+        stmt = select(
+            ProcessRequests.ProcessPayload, ProcessRequests.DocumentId
+        ).filter_by(TaskId=task_id)
+        row = session.execute(stmt).one_or_none()
+
+        if row is None:
+            return None
+
+        return {"ProcessPayload": row.ProcessPayload, "DocumentId": row.DocumentId}
+
+
+def log_process_step(task_id: int, log_type_id: int, calling_process: str) -> Optional[int]:
+    try:
+        with sessionmanager.session() as session:
+            with session.begin():
+                new_log = ProcessLogs(
+                    TaskId=task_id,
+                    LogTypeId=log_type_id,
+                    StartTime=datetime.now().astimezone(),
+                )
+                session.add(new_log)
+            log_id = new_log.Id
+        return log_id
+    except SQLAlchemyError:
+        logger.Info(f"{calling_process}: task_id{task_id}-{log_type_id}")
+
+
+def save_process_result(task_id: int, document_id: int, content: str, mapping_data: Dict[str, Any]) -> Optional[int]:
+    """Insert a process result and return its generated ID safely."""
+    try:
+        with sessionmanager.session() as session:
+            with session.begin():
+                new_result = ProcessResult(
+                    TaskId=task_id,
+                    DocumentId=document_id,
+                    Content=content,
+                    CreatedAt=datetime.now().astimezone(),
+                    MappingData=mapping_data,
+                )
+                session.add(new_result)
+            result_id = new_result.Id
+        return result_id
+
+    except SQLAlchemyError:
+        # TODO: replace with proper logging
+        return None
+
+
+dependency.py code is:
+from typing import Annotated
+
+from fastapi import Depends
+from sqlalchemy.orm import Session
+
+from src.db.manager import get_db_session
+
+DBSessionDep = Annotated[Session, Depends(get_db_session)]
+
+enums.py code is :
+from enum import Enum
+
+class TaskStatusEnum(str, Enum):
+    RECEIVED = "received"
+    PENDING = "pending"
+    STARTED = "started"
+    SEND_CALLBACK = "send_callback"
+    DONE = "done"
+    FAILED = "failed"
+
+class DocumentStatusEnum(str, Enum):
+    STARTED = "started"
+    DONE = "done"
+    FAILED = "failed"
+
+manager.py is :
+import contextlib
+from typing import Any, Iterator
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+
+from src.core.settings import app_settings
+
+
+class DatabaseSessionManager:
+    def __init__(self, host: str, engine_kwargs: dict[str, Any] | None = None):
+        if engine_kwargs is None:
+            engine_kwargs = {}
+        self._engine = create_engine(host, **engine_kwargs)
+        self._sessionmaker = sessionmaker(
+            bind=self._engine, autoflush=False, expire_on_commit=False
+        )
+
+    def close(self) -> None:
+        if self._engine is None:
+            raise RuntimeError("DatabaseSessionManager is not initialized")
+        self._engine.dispose()
+        self._engine = None
+        self._sessionmaker = None
+
+    @contextlib.contextmanager
+    def session(self) -> Iterator[Session]:
+        if self._sessionmaker is None:
+            raise RuntimeError("DatabaseSessionManager is not initialized")
+        session = self._sessionmaker()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+
+sessionmanager = DatabaseSessionManager(app_settings.database_url)
+
+
+def get_db_session() -> Iterator[Session]:
+    with sessionmanager.session() as session:
+        yield session
+
+
+models.py code is :
+import uuid
+from enum import Enum
+
+from datetime import datetime
+
+from sqlalchemy.dialects.mssql import DATETIMEOFFSET
+from sqlalchemy.dialects.mssql.base import UNIQUEIDENTIFIER
+from sqlalchemy import (
+    BigInteger,
+    CHAR,
+    NCHAR,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Enum as SQLEnum
+)
+from sqlalchemy.dialects.mysql.types import CHAR
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+from src.db.enums import TaskStatusEnum, DocumentStatusEnum
+from src.utilities.datetime.utc_datetime import utc_now
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class ProcessLogs(Base):
+    __tablename__ = "process_logs"
+
+    Id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    TaskId: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("process_requests.TaskId"), index=True
+    )
+    LogTypeId: Mapped[int] = mapped_column(Integer, ForeignKey("process_type.Id"))
+    StartTime: Mapped[DateTime] = mapped_column(DateTime)
+
+    request: Mapped["ProcessRequests"] = relationship(
+        "ProcessRequests", back_populates="logs"
+    )
+    log_type: Mapped["ProcessType"] = relationship("ProcessType", back_populates="logs")
+
+
+class ProcessRequests(Base):
+    __tablename__ = "process_requests"
+
+    Id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    TaskId: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
+    UserId: Mapped[int] = mapped_column(BigInteger)
+    DocumentId: Mapped[int] = mapped_column(BigInteger)
+    EndpointName: Mapped[str] = mapped_column(String)
+    ProcessPayload: Mapped[str] = mapped_column(String)
+    StartTime: Mapped[DATETIMEOFFSET] = mapped_column(DATETIMEOFFSET)
+    EndTime: Mapped[DATETIMEOFFSET | None] = mapped_column(
+        DATETIMEOFFSET, nullable=True
+    )
+
+    logs: Mapped[list["ProcessLogs"]] = relationship(
+        "ProcessLogs", back_populates="request", cascade="all, delete-orphan"
+    )
+    results: Mapped[list["ProcessResult"]] = relationship(
+        "ProcessResult", back_populates="request", cascade="all, delete-orphan"
+    )
+
+
+class ProcessResult(Base):
+    __tablename__ = "process_result"
+
+    Id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    TaskId: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("process_requests.TaskId"), index=True
+    )
+    DocumentId: Mapped[int] = mapped_column(Integer)
+    Content: Mapped[str] = mapped_column(String)
+    CreatedAt: Mapped[DATETIMEOFFSET] = mapped_column(DATETIMEOFFSET)
+    MappingData: Mapped[str] = mapped_column(String)
+
+    request: Mapped["ProcessRequests"] = relationship(
+        "ProcessRequests", back_populates="results"
+    )
+
+
+class ProcessType(Base):
+    __tablename__ = "process_type"
+
+    Id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    Title: Mapped[str] = mapped_column(String, nullable=False)
+
+    logs: Mapped[list["ProcessLogs"]] = relationship(
+        "ProcessLogs", back_populates="log_type"
+    )
+class Document(Base):
+    __tablename__ = "document"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    uid: Mapped[uuid.UUID] = mapped_column(
+        UNIQUEIDENTIFIER,
+        unique=True,
+        index=True,
+    )
+    status: Mapped[DocumentStatusEnum] = mapped_column(
+        SQLEnum(DocumentStatusEnum, native_enum=False, length=50),
+        nullable=False,
+        default=DocumentStatusEnum.STARTED,
+    )
+    total_chunks: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    complete_chunks: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    processed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    modified_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+
+    tasks: Mapped[list["Task"]] = relationship(
+        "Task", back_populates="document", cascade="all, delete-orphan"
+    )
+    chunks: Mapped[list["Chunk"]] = relationship(
+        "Chunk", back_populates="document", cascade="all, delete-orphan"
+    )
+class Task(Base):
+
+    __tablename__ = "task"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+
+    uid: Mapped[uuid.UUID] = mapped_column(
+        UNIQUEIDENTIFIER,
+        unique=True,
+        index=True,
+        nullable=False
+    )
+
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UNIQUEIDENTIFIER,
+        ForeignKey("document.uid", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    callback_url: Mapped[str] = mapped_column(NCHAR(255), nullable=False)
+    payload: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    status: Mapped[TaskStatusEnum] = mapped_column(
+        SQLEnum(TaskStatusEnum, native_enum=False, length=50),
+        nullable=False,
+        default=TaskStatusEnum.RECEIVED,
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    modified_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+
+    document: Mapped["Document"] = relationship("Document", back_populates="tasks")
+
+    __table_args__ = (
+        Index("task_id_uid_document_id_index", "id", "uid", "document_id"),
+    )
+
+
+class Chunk(Base):
+    __tablename__ = "chunk"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UNIQUEIDENTIFIER,
+        ForeignKey("document.uid", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    uid: Mapped[uuid.UUID] = mapped_column(
+        UNIQUEIDENTIFIER,
+        unique=True,
+        index=True,
+        nullable=False
+    )
+
+    milvus_embedded: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    elastic_embedded: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    processed: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    modified_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+
+    document: Mapped["Document"] = relationship("Document", back_populates="chunks")
+
+    __table_args__ = (
+        Index("chunk_id_document_id_index", "id", "document_id"),
+    )
+
+
+5)"embedding_pipeline" folder has these files : "schemas.py", "services.py"
+schemas.py code is:
+from typing import List
+from uuid import UUID
+from enum import Enum
+from datetime import datetime
+from pydantic import BaseModel, Field
+
+from src.db.enums import DocumentStatusEnum, TaskStatusEnum
+
+class ConfigMixin:
+    model_config = {
+        "from_attributes": True,
+    }
+
+class ChunkSchema(BaseModel, ConfigMixin):
+    id: int
+    document_id: UUID
+    uid: UUID
+    milvus_embedded: bool
+    elastic_embedded: bool
+    processed: bool
+    created_at: datetime
+    modified_at: datetime
+
+class TaskSchema(BaseModel, ConfigMixin):
+    id: int
+    uid: UUID
+    document_id: UUID
+    callback_url: str
+    payload: int
+    status: TaskStatusEnum
+    created_at: datetime
+    modified_at: datetime
+
+class DocumentSchema(BaseModel, ConfigMixin):
+    id: int
+    uid: UUID
+    status: DocumentStatusEnum
+    total_chunks: int
+    complete_chunks: int
+    processed_at: datetime
+    created_at: datetime
+    modified_at: datetime
+    tasks: List[TaskSchema] = Field(default_factory=list)
+    chunks: List[ChunkSchema] = Field(default_factory=list)
+
+
+6)"force_stop" folder has a router.py script with this code:
+from fastapi import APIRouter
+
+from src.core.worker import celery_worker
+
+router = APIRouter(tags=["force stop"])
+
+
+@router.post("/force_stop")
+def force_stop_by_task_id(task_id: int):
+    celery_worker.control.revoke(str(task_id), terminate=True, signal="SIGKILL")
+    return f"task: {task_id} stopped."
+
+
+7)"normal_document" has these scripts : "config.py", "router.py", "schemas.py", "services.py", "task.py"
+config.py code is:
+from docling.backend.pypdfium2_backend import PyPdfiumDocumentBackend
+from docling.datamodel.base_models import InputFormat
+from docling.datamodel.pipeline_options import PdfPipelineOptions
+from docling.document_converter import (
+    PdfFormatOption,
+    WordFormatOption,
+)
+from docling.pipeline.simple_pipeline import SimplePipeline
+from docling.pipeline.standard_pdf_pipeline import StandardPdfPipeline
+from pydantic import BaseModel, ConfigDict
+
+
+class NormalDocumentConverterConfig(BaseModel):
+    allowed_formats: list[InputFormat]
+    format_options: dict[InputFormat, object]
+
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+    )
+
+
+normal_document_settings = NormalDocumentConverterConfig(
+    allowed_formats=[InputFormat.PDF, InputFormat.DOCX],
+    format_options={
+        InputFormat.PDF: PdfFormatOption(
+            pipeline_cls=StandardPdfPipeline,
+            backend=PyPdfiumDocumentBackend,
+            pipeline_options=PdfPipelineOptions(
+                images_scale=1.0,
+                generate_picture_images=True,
+            ),
+        ),
+        InputFormat.DOCX: WordFormatOption(
+            pipeline_cls=SimplePipeline,
+        ),
+    },
+)
+
+
+router.py code is :
+from fastapi import APIRouter, status
+
+from src.normal_document.tasks import normal_document_extraction_pipeline
+
+router = APIRouter(tags=["normal document extraction"])
+
+
+@router.post("/normal_pdf", status_code=status.HTTP_202_ACCEPTED)
+# TODO: basemodel for req_task_id
+async def normal_document_extraction(req_task_id: int):
+    normal_document_extraction_pipeline.apply_async(
+        args=(req_task_id,), task_id=str(req_task_id)
+    )
+    # TODO: response schema
+    return f"task: {req_task_id} started."
+
+
+schemas.py code is :
+from pydantic import BaseModel
+
+
+class MinIOEnc(BaseModel):
+    minio_access_key: str
+    minio_secret_key: str
+
+
+class ProcessPayload(BaseModel):
+    input_minio_cred: MinIOEnc
+    input_minio_endpoint: str
+    input_bucket_name: str
+    input_object_path: str
+    pages: list[int] | None = None
+    extract_images: int = 0 | 1
+    output_minio_cred: MinIOEnc | None = None
+    output_minio_endpoint: str | None = None
+    output_bucket_name: str | None = None
+    output_object_path: str | None = None
+
+
+class MappingDataSchema(BaseModel):
+    type: str
+    page_number: int
+    pic_number: int | None = None
+
+
+services.py code is:
+import os
+from collections import defaultdict
+
+from docling.document_converter import DocumentConverter
+from docling_core.types.doc import PictureItem
+
+from src.normal_document.config import normal_document_settings
+
+
+class NormalDocumentService:
+    def __init__(self, task_id, pages: list[int] = None):
+        self.doc_convertor = DocumentConverter(
+            allowed_formats=normal_document_settings.allowed_formats,
+            format_options=normal_document_settings.format_options,
+        )
+        self.converted = None
+        self.page_by_page_md = {}
+        self.task_id = task_id
+        self.pic_dir = os.path.join("pictures", str(self.task_id))
+        os.makedirs(self.pic_dir, exist_ok=True)
+        self.pics = defaultdict(list)
+        self.pages = pages
+
+    def convert(self, input_file) -> None:
+        self.converted = self.doc_convertor.convert(input_file)
+
+    @property
+    def total_pages(self) -> int:
+        return self.converted.document.num_pages()
+
+    def get_pages_to_process(self) -> list[int]:
+        if self.pages is not None:
+            return self.pages
+        return list(range(1, self.total_pages + 1))
+
+    def extract_page_by_page_md(self) -> None:
+        for page_no in self.get_pages_to_process():
+            self.page_by_page_md[page_no] = self.converted.document.export_to_markdown(
+                page_no=page_no
+            )
+
+    def extract_pictures(self) -> None:
+        for page_no in self.get_pages_to_process():
+            picture_counter = 0
+            for element, _ in self.converted.document.iterate_items(page_no=page_no):
+                if isinstance(element, PictureItem):
+                    picture_counter += 1
+                    element_image_filename = os.path.join(
+                        self.pic_dir, f"page-{page_no}-picture-{picture_counter}.png"
+                    )
+                    with open(element_image_filename, "wb") as fp:
+                        element.get_image(self.converted.document).save(fp, "PNG")
+                    self.pics[page_no].append(element_image_filename)
+
+    def cleanup(self):
+        os.rmdir(self.pic_dir)
+
+tasks.py code is :
+import logging
+import os
+
+from src.core.settings import app_settings
+from src.core.worker import celery_worker
+from src.db.crud import (
+    get_process_data_by_task_id,
+    log_process_step,
+    save_process_result,
+)
+from src.normal_document.schemas import MappingDataSchema, ProcessPayload
+from src.normal_document.services import NormalDocumentService
+from src.utilities.aes_utility import decrypt
+from src.utilities.minio_utility import MinioUtility
+
+logger = logging.getLogger(__name__)
+
+
+@celery_worker.task
+def normal_document_extraction_pipeline(
+    req_task_id: int,
+):
+    # TODO: try except
+    log_process_step(
+        task_id=req_task_id, log_type_id=1, calling_process="normal_document_extraction"
+    )
+    task_data = get_process_data_by_task_id(task_id=req_task_id)
+    if task_data:
+        try:
+            payload = ProcessPayload.model_validate_json(task_data["ProcessPayload"])
+            document_id = task_data["DocumentId"]
+
+            input_minio_access_key = decrypt(payload.input_minio_cred.minio_access_key)
+            input_minio_secret_key = decrypt(payload.input_minio_cred.minio_secret_key)
+
+            input_minio = MinioUtility(
+                access_key=input_minio_access_key,
+                secret_key=input_minio_secret_key,
+                endpoint=payload.input_minio_endpoint,
+                secure=app_settings.minio_security,
+            )
+            documents_path = app_settings.document_path
+
+            os.makedirs(documents_path, exist_ok=True)
+            file_extension = os.path.splitext(payload.input_object_path)[-1]
+            document_name = f"{documents_path}/{req_task_id}{file_extension}"
+
+            log_process_step(
+                task_id=req_task_id,
+                log_type_id=2,
+                calling_process="normal_document_extraction",
+            )
+            input_minio.download_file(
+                bucket_name=payload.input_bucket_name,
+                file_key=payload.input_object_path,
+                file_path=document_name,
+            )
+            log_process_step(
+                task_id=req_task_id,
+                log_type_id=3,
+                calling_process="normal_document_extraction",
+            )
+            logger.Info(f"Normal PDF Parse File. task_id{req_task_id}")
+            document_service = NormalDocumentService(
+                task_id=req_task_id, pages=payload.pages
+            )
+            document_service.convert(document_name)
+            document_service.extract_page_by_page_md()
+
+            for page_num, page_content in document_service.page_by_page_md.items():
+                log_process_step(
+                    task_id=req_task_id,
+                    log_type_id=6,
+                    calling_process="normal_document_extraction",
+                )
+                save_process_result(
+                    task_id=req_task_id,
+                    document_id=document_id,
+                    content=page_content,
+                    mapping_data=MappingDataSchema(
+                        type="txt", page_number=page_num
+                    ).model_dump_json(),
+                )
+
+            if payload.extract_images == 1:
+                log_process_step(
+                    task_id=req_task_id,
+                    log_type_id=4,
+                    calling_process="normal_document_extraction",
+                )
+                document_service.extract_pictures()
+                output_minio_access_key = decrypt(
+                    payload.output_minio_cred.minio_access_key
+                )
+                output_minio_secret_key = decrypt(
+                    payload.output_minio_cred.minio_secret_key
+                )
+
+                output_minio = MinioUtility(
+                    access_key=output_minio_access_key,
+                    secret_key=output_minio_secret_key,
+                    endpoint=payload.output_minio_endpoint,
+                    secure=app_settings.minio_security,
+                )
+
+                for page_num, img_list in document_service.pics.items():
+                    for idx, img in enumerate(img_list):
+                        log_process_step(
+                            task_id=req_task_id,
+                            log_type_id=5,
+                            calling_process="normal_document_extraction",
+                        )
+                        minio_img_path = output_minio.upload_file(
+                            bucket_name=payload.output_bucket_name,
+                            file_key=os.path.join(
+                                payload.output_object_path, img.split("/")[-1]
+                            ),
+                            file_path=img,
+                        )
+                        log_process_step(
+                            task_id=req_task_id,
+                            log_type_id=7,
+                            calling_process="normal_document_extraction",
+                        )
+                        save_process_result(
+                            task_id=req_task_id,
+                            document_id=document_id,
+                            content=minio_img_path,
+                            mapping_data=MappingDataSchema(
+                                type="img", page_number=page_num, pic_number=idx + 1
+                            ).model_dump_json(),
+                        )
+            log_process_step(task_id=req_task_id, log_type_id=8)
+        except Exception as e:
+            logger.error(f"Error In normal_document task:{e}")
+    else:
+        # TODO: callback, cleanup(doc and pictures)
+        pass
+
+
+8)"utilities" folder has a "datetime" folder and "aes_utility.py", "minio_utility.py"
+in datetime folder there is a script named "utc_datetime.py":
+from datetime import datetime, timezone
+from typing import Union
+
+
+def utc_now() -> datetime:
+    """Return the current time as a timezone-aware UTC datetime"""
+    return datetime.now(timezone.utc)
+
+def to_timestamp(dt: datetime) -> float:
+    """Convert a datetime to a POSIX timestamp (seconds since the epoch)"""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.timestamp()
+
+
+def from_timestamp(ts: Union[int, float], tz: timezone = timezone.utc) -> datetime:
+    """Create a timezone-aware datetime from a POSIX timestamp"""
+    return datetime.fromtimestamp(ts, tz=tz)
+
+def to_iso(dt: datetime) -> str:
+    """Return an ISO 8601 formatted string for the given datetime"""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.isoformat()
+
+
+def from_iso(iso_str: str) -> datetime:
+    """Parse an ISO 8601 datetime string into a timezone-aware datetime"""
+    dt = datetime.fromisoformat(iso_str)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+in the "aes_utility.py" there is this code:
+def decrypt(enc_str: str) -> str:
+    return enc_str
+
+
+and in the minio_utility.py there is :
+from minio import Minio
+
+
+class MinioUtility:
+    def __init__(self, endpoint, access_key, secret_key, secure):
+        self.client = Minio(
+            endpoint, access_key=access_key, secret_key=secret_key, secure=secure
+        )
+
+    def download_file(self, bucket_name, file_key, file_path):
+        self.client.fget_object(
+            bucket_name=bucket_name, object_name=file_key, file_path=file_path
+        )
+        return file_path
+
+    def upload_file(self, bucket_name, file_key, file_path):
+        self.client.fput_object(
+            bucket_name=bucket_name, object_name=file_key, file_path=file_path
+        )
+        return file_key
+
+
+all folders in src are explained above and only alongside these folders there is a "main.py" code with this content:
+import os
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Depends
+
+from src.db.manager import sessionmanager
+from src.force_stop.router import router as force_stop_router
+from src.normal_document.router import router as normal_document_router
+from src.auth.dependency import get_api_key
+from src.app_logger.manager import setup_logging
+
+
+logger = logging.getLogger(__name__)
+setup_logging()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    yield
+    if sessionmanager._engine is not None:
+        sessionmanager.close()
+
+
+app = FastAPI(lifespan=lifespan, dependencies=[Depends(get_api_key)])
+
+app.include_router(normal_document_router)
+app.include_router(force_stop_router)
+
+i explained u code base i ask u what i want and what should i change in next prompt
